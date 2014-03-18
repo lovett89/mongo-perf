@@ -3,12 +3,10 @@
 #include <iostream>
 #include <vector>
 #include <boost/program_options.hpp>
-#include "../core/util.hh"
 #include "CSVFormatter.hh"
 
 namespace po = boost::program_options;
 using namespace std;
-using namespace mongo;
 
 int main(int argc, char **argv) {
     try {
@@ -57,7 +55,7 @@ int main(int argc, char **argv) {
         if (options_vars.count("connection-string")) {
             string conn_string = options_vars["connection-string"].as<string>();
 
-            DBClientConnection* conn = new DBClientConnection();
+	    mongo::DBClientConnection* conn = new mongo::DBClientConnection();
             try {
                 conn->connect(conn_string);
             } catch (mongo::UserException const & e) {

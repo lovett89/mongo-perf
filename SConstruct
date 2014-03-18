@@ -82,7 +82,7 @@ for x in libs:
 
 env = conf.Finish()
 
-#env.Program(target = './benchmark', source = 'core/benchmark.cc')
+env.Program(target = './benchmark', source = 'core/benchmark.cc')
 env.Program('bench-report', ["report/report.cc",
                              "report/CSVFormatter.cc",
                              "report/Formatter.cc"])
