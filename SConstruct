@@ -1,7 +1,30 @@
 # -*- mode: python; -*-
 import os
 
+AddOption("--extrapath", dest="extrapath", type=str, action="store",
+          help=("comma-separated list of paths to search for header files "
+                "and libraries"))
+
 env = Environment()
+
+def add_paths(string):
+    for path in string.split(","):
+        if os.path.exists(path) and os.path.isdir(path):
+            # for header files included as dir/header.cpp
+            env.Append(CPPPATH=[path])
+
+            base = os.path.basename
+            is_lib_dir = lambda s: os.path.isdir(s) and base(s).startswith("lib")
+            is_cpp_dir = lambda s: os.path.isdir(s) and base(s).startswith("include")
+            for p in os.listdir(path):
+                abspath = os.path.join(path, p)
+                if is_lib_dir(abspath):
+                    env.Append(LIBPATH=[abspath])
+                elif is_cpp_dir(abspath):
+                    env.Append(CPPPATH=[abspath])
+
+if GetOption("extrapath") is not None:
+    add_paths(GetOption("extrapath"))
 
 is_windows = (os.sys.platform == 'win32')
 
@@ -20,34 +43,17 @@ env.Append(CPPFLAGS=cpp_flags)
 env.Append(LINKFLAGS=link_flags)
 
 if 'darwin' == os.sys.platform:
-    if os.path.exists('/opt/local/include'):
-        env.Append(CPPPATH=['/opt/local/include'])
-    if os.path.exists('/opt/local/lib'):
-        env.Append(LIBPATH=['/opt/local/lib'])
-
+    add_paths('/opt/local')
 if is_windows:
-    # mongo-cxx-driver installs to C:\usr\local
-    env.Append(CPPPATH=[r'C:/usr/local'])
-    env.Append(CPPPATH=[r'C:/usr/local/include'])
-    env.Append(CPPPATH=[r'C:/usr/local/include/mongo'])
-    env.Append(LIBPATH=[r'C:\usr\local\lib'])
+    # Try to find mongo-cxx-driver in C:\usr\local
+    add_paths("C:\usr\local")
 
-    # assume that boost is in C:\local
+    # Try to find boost in C:\local
     if os.path.exists("C:\local"):
-        # find boost library
-        boost_dirs = []
         for dir in os.listdir("C:\local"):
             abspath = os.path.join("C:\local", dir)
             if os.path.isdir(abspath) and dir.startswith("boost"):
-                boost_dirs.append(abspath)
-
-        for dir in boost_dirs:
-            env.Append(CPPPATH=[dir])
-            env.Append(CPPPATH=[os.path.join(dir, "boost")])
-            for lib in os.listdir(dir):
-                abspath = os.path.join(dir, lib)
-                if os.path.isdir(abspath) and lib.startswith("lib"):
-                    env.Append(LIBPATH=[abspath])
+                add_paths(abspath)
 else:
     # use included mongo-cxx-driver
     env.Append(CPPPATH=['mongo-cxx-driver/src'])
